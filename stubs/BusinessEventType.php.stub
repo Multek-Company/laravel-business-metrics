@@ -1,0 +1,37 @@
+<?php
+
+namespace App\Enums;
+
+/**
+ * All valid business event types for your application.
+ *
+ * Register this enum in config/business-metrics.php:
+ *   'events' => \App\Enums\BusinessEventType::class,
+ *
+ * Add your domain-specific events below.
+ */
+enum BusinessEventType: string
+{
+    // Auth & Onboarding
+    case UserSignedUp = 'user_signed_up';
+    case UserVerifiedEmail = 'user_verified_email';
+    case CompanyCreated = 'company_created';
+    case CompanyOnboardingCompleted = 'company_onboarding_completed';
+
+    // Core Funnel — customize these for your business
+    // case RfqCreated = 'rfq_created';
+    // case SupplierInvited = 'supplier_invited';
+    // case SupplierResponded = 'supplier_responded';
+    // case QuoteReceived = 'quote_received';
+    // case QuoteSelected = 'quote_selected';
+    // case OrderCreated = 'order_created';
+    // case OrderPaid = 'order_paid';
+    // case OrderDelivered = 'order_delivered';
+
+    // Monetization
+    // case SubscriptionStarted = 'subscription_started';
+    // case SubscriptionRenewed = 'subscription_renewed';
+    // case SubscriptionCancelled = 'subscription_cancelled';
+    // case PaymentConfirmed = 'payment_confirmed';
+    // case PaymentFailed = 'payment_failed';
+}

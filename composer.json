@@ -1,0 +1,44 @@
+{
+    "name": "multek/laravel-business-metrics",
+    "description": "Server-side business event tracking with rollups and analytics schema for Laravel applications.",
+    "keywords": ["laravel", "analytics", "business-events", "rollups", "bi", "grafana", "metabase"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Rodrigo Casagrande",
+            "email": "rodrigo@multek.com.br"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^11.0|^12.0",
+        "illuminate/database": "^11.0|^12.0",
+        "illuminate/console": "^11.0|^12.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0|^10.0",
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Multek\\BusinessMetrics\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Multek\\BusinessMetrics\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Multek\\BusinessMetrics\\Providers\\BusinessMetricsServiceProvider"
+            ],
+            "aliases": {
+                "BusinessEvent": "Multek\\BusinessMetrics\\Facades\\BusinessEvent"
+            }
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
