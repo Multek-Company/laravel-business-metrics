@@ -105,7 +105,7 @@ class BusinessMetricsServiceProvider extends ServiceProvider
     {
         $events = config('business-metrics.events', []);
 
-        if (is_string($events) && enum_exists($events)) {
+        if (is_string($events) && enum_exists($events) && is_subclass_of($events, \BackedEnum::class)) {
             return array_map(
                 fn ($case) => $case->value,
                 $events::cases()
