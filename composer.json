@@ -1,7 +1,7 @@
 {
     "name": "multek/laravel-business-metrics",
-    "description": "Server-side business event tracking with rollups and analytics schema for Laravel applications.",
-    "keywords": ["laravel", "analytics", "business-events", "rollups", "bi", "grafana", "metabase"],
+    "description": "Server-side business event tracking with flexible reports and analytics schema for Laravel applications.",
+    "keywords": ["laravel", "analytics", "business-events", "reports", "bi", "grafana", "metabase"],
     "license": "MIT",
     "authors": [
         {

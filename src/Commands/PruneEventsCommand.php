@@ -14,7 +14,7 @@ class PruneEventsCommand extends Command
 
     public function handle(): int
     {
-        $days = $this->option('days') ?? config('business-metrics.events_retention_days', 365);
+        $days = $this->option('days') ?? config('business-metrics.events_retention_days', 365 * 2);
         $days = (int) $days;
 
         if ($days <= 0) {

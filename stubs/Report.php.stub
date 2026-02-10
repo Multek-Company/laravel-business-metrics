@@ -1,0 +1,59 @@
+<?php
+
+namespace App\Reports;
+
+use Multek\BusinessMetrics\Reports\BusinessReport;
+
+class {{ class }} extends BusinessReport
+{
+    public function table(): string
+    {
+        return 'analytics.{{ table }}';
+    }
+
+    public function schema(): string
+    {
+        return <<<'SQL'
+            CREATE TABLE IF NOT EXISTS analytics.{{ table }} (
+                -- Define your columns here
+                -- Example:
+                -- cohort_week DATE PRIMARY KEY,
+                -- signups BIGINT NOT NULL DEFAULT 0,
+                -- activation_rate NUMERIC(5,2) NOT NULL DEFAULT 0,
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        SQL;
+    }
+
+    public function query(): string
+    {
+        // Use a lookback window + ON CONFLICT for incremental upserts.
+        // Only recent data is recomputed; older rows stay untouched.
+        return <<<'SQL'
+            -- INSERT INTO analytics.{{ table }} (...)
+            -- SELECT ...
+            -- FROM public.business_events
+            -- WHERE occurred_at >= NOW() - INTERVAL '3 weeks'
+            -- GROUP BY ...
+            -- ON CONFLICT (...) DO UPDATE SET ...
+        SQL;
+    }
+
+    public function schedule(): string
+    {
+        return '0 */6 * * *'; // every 6 hours
+    }
+
+    // Optional: uncomment to enable auto-pruning of old analytics rows.
+    // Most reports should keep data forever (the lookback in query() handles freshness).
+    //
+    // public function retentionDays(): ?int
+    // {
+    //     return 365;
+    // }
+    //
+    // public function retentionColumn(): string
+    // {
+    //     return 'updated_at';
+    // }
+}

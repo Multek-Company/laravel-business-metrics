@@ -48,7 +48,7 @@ class BusinessEventLogger
             'company_id' => $companyId,
             'entity_type' => $entityType,
             'entity_id' => $entityId ? (string) $entityId : null,
-            'properties' => json_encode($properties),
+            'properties' => $properties,
             'request_id' => request()?->header('X-Request-ID'),
             'dedupe_key' => $dedupeKey,
         ];
@@ -86,7 +86,7 @@ class BusinessEventLogger
             'company_id' => $companyId,
             'entity_type' => $entityType,
             'entity_id' => $entityId ? (string) $entityId : null,
-            'properties' => json_encode($properties),
+            'properties' => $properties,
             'request_id' => request()?->header('X-Request-ID'),
             'dedupe_key' => $dedupeKey,
         ]);

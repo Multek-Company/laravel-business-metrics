@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -13,8 +12,9 @@ return new class extends Migration
         DB::statement("CREATE SCHEMA IF NOT EXISTS {$schema}");
 
         // Create business_events table (append-only event log)
+        $eventsTable = config('business-metrics.events_table', 'public.business_events');
         DB::statement("
-            CREATE TABLE IF NOT EXISTS public.business_events (
+            CREATE TABLE IF NOT EXISTS {$eventsTable} (
                 id UUID PRIMARY KEY,
                 event_name VARCHAR(100) NOT NULL,
                 occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -32,29 +32,33 @@ return new class extends Migration
         // Indices for common query patterns
         DB::statement("
             CREATE INDEX IF NOT EXISTS idx_business_events_occurred
-            ON public.business_events (occurred_at DESC)
+            ON {$eventsTable} (occurred_at DESC)
         ");
 
         DB::statement("
             CREATE INDEX IF NOT EXISTS idx_business_events_name_occurred
-            ON public.business_events (event_name, occurred_at DESC)
+            ON {$eventsTable} (event_name, occurred_at DESC)
         ");
 
         DB::statement("
             CREATE INDEX IF NOT EXISTS idx_business_events_company
-            ON public.business_events (company_id, occurred_at DESC)
+            ON {$eventsTable} (company_id, occurred_at DESC)
             WHERE company_id IS NOT NULL
         ");
 
         DB::statement("
             CREATE INDEX IF NOT EXISTS idx_business_events_entity
-            ON public.business_events (entity_type, entity_id)
+            ON {$eventsTable} (entity_type, entity_id)
             WHERE entity_type IS NOT NULL
         ");
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('public.business_events');
+        $eventsTable = config('business-metrics.events_table', 'public.business_events');
+        DB::statement("DROP TABLE IF EXISTS {$eventsTable}");
+
+        $schema = config('business-metrics.analytics_schema', 'analytics');
+        DB::statement("DROP SCHEMA IF EXISTS {$schema} CASCADE");
     }
 };

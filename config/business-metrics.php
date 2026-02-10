@@ -8,18 +8,18 @@ return [
     |--------------------------------------------------------------------------
     |
     | The database connection used for business events and analytics tables.
-    | By default it uses your app's default connection. When you add a read
+    | When null, uses your app's default connection. When you add a read
     | replica, create a separate connection and point analytics reads there.
     |
     */
-    'connection' => env('BUSINESS_METRICS_CONNECTION', config('database.default')),
+    'connection' => env('BUSINESS_METRICS_CONNECTION'),
 
     /*
     |--------------------------------------------------------------------------
     | Analytics Schema
     |--------------------------------------------------------------------------
     |
-    | The PostgreSQL schema where rollup tables and materialized views live.
+    | The PostgreSQL schema where report tables live.
     | This keeps analytical data separate from your transactional tables.
     |
     */
@@ -78,66 +78,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Rollups Configuration
+    | Reports
     |--------------------------------------------------------------------------
     |
-    | Define which rollup tables to generate and their refresh intervals.
-    | Each rollup aggregates business_events into fast-query tables.
+    | Register your BusinessReport classes here. Each report defines its own
+    | table schema, SQL query, and schedule. The package handles table
+    | creation, scheduling, and optional pruning.
+    |
+    | Example:
+    |   \App\Reports\ActivationRateReport::class,
+    |   \App\Reports\WeeklyRevenueReport::class,
     |
     */
-    'rollups' => [
+    'reports' => [
 
-        'events_minute' => [
-            'enabled' => true,
-            'table' => 'analytics.events_minute',
-            'interval' => 'minute',         // minute, hour, day
-            'schedule' => '* * * * *',       // every minute
-            'retention_days' => 7,           // auto-prune older than this
-        ],
-
-        'events_hour' => [
-            'enabled' => true,
-            'table' => 'analytics.events_hour',
-            'interval' => 'hour',
-            'schedule' => '*/5 * * * *',     // every 5 minutes
-            'retention_days' => 90,
-        ],
-
-        'events_daily' => [
-            'enabled' => true,
-            'table' => 'analytics.events_daily',
-            'interval' => 'day',
-            'schedule' => '5 * * * *',       // every hour at :05
-            'retention_days' => 730,         // 2 years
-        ],
-
-        'funnel_daily' => [
-            'enabled' => true,
-            'table' => 'analytics.funnel_daily',
-            'interval' => 'day',
-            'schedule' => '10 * * * *',      // every hour at :10
-            'retention_days' => 730,
-        ],
-
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Funnel Stages
-    |--------------------------------------------------------------------------
-    |
-    | Define the ordered stages of your business funnel.
-    | Each stage maps to an event_name in business_events.
-    | Used by the funnel_daily rollup.
-    |
-    */
-    'funnel_stages' => [
-        // 'user_signed_up',
-        // 'company_created',
-        // 'rfq_created',
-        // 'quote_received',
-        // 'order_created',
-        // 'order_paid',
     ],
 
     /*
@@ -167,13 +121,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Reports Queue
+    |--------------------------------------------------------------------------
+    |
+    | The queue name used to dispatch report processing jobs.
+    | Defaults to 'default'. Set this to a dedicated queue if you want
+    | to isolate report processing from other jobs.
+    |
+    */
+    'reports_queue' => env('BUSINESS_METRICS_REPORTS_QUEUE', 'default'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Pruning
     |--------------------------------------------------------------------------
     |
     | Auto-prune old business_events rows. Set to 0 to keep forever.
-    | Rollup tables have their own retention_days above.
+    | Report tables manage their own retention via retentionDays().
     |
     */
-    'events_retention_days' => env('BUSINESS_METRICS_RETENTION_DAYS', 365),
+    'events_retention_days' => env('BUSINESS_METRICS_RETENTION_DAYS', 365 * 2),
 
 ];

@@ -5,11 +5,13 @@ namespace Multek\BusinessMetrics\Providers;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
 use Multek\BusinessMetrics\Commands\CreateAnalyticsSchemaCommand;
-use Multek\BusinessMetrics\Commands\ProcessRollupsCommand;
+use Multek\BusinessMetrics\Commands\MakeReportCommand;
+use Multek\BusinessMetrics\Commands\ProcessReportsCommand;
 use Multek\BusinessMetrics\Commands\PruneEventsCommand;
 use Multek\BusinessMetrics\Commands\ListEventsCommand;
+use Multek\BusinessMetrics\Jobs\ProcessReportJob;
 use Multek\BusinessMetrics\Services\BusinessEventLogger;
-use Multek\BusinessMetrics\Services\RollupProcessor;
+use Multek\BusinessMetrics\Services\ReportProcessor;
 
 class BusinessMetricsServiceProvider extends ServiceProvider
 {
@@ -26,12 +28,9 @@ class BusinessMetricsServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->singleton(RollupProcessor::class, function ($app) {
-            return new RollupProcessor(
-                config('business-metrics.connection'),
-                config('business-metrics.events_table'),
-                config('business-metrics.rollups'),
-                config('business-metrics.funnel_stages'),
+        $this->app->singleton(ReportProcessor::class, function ($app) {
+            return new ReportProcessor(
+                config('business-metrics.reports', []),
             );
         });
     }
@@ -53,6 +52,11 @@ class BusinessMetricsServiceProvider extends ServiceProvider
             __DIR__ . '/../../stubs/BusinessEventType.php.stub' => app_path('Enums/BusinessEventType.php'),
         ], 'business-metrics-enum');
 
+        // Publish report stub
+        $this->publishes([
+            __DIR__ . '/../../stubs/Report.php.stub' => resource_path('stubs/vendor/business-metrics/Report.php.stub'),
+        ], 'business-metrics-stubs');
+
         // Load migrations
         $this->loadMigrationsFrom(__DIR__ . '/../../database/migrations');
 
@@ -60,30 +64,29 @@ class BusinessMetricsServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 CreateAnalyticsSchemaCommand::class,
-                ProcessRollupsCommand::class,
+                ProcessReportsCommand::class,
+                MakeReportCommand::class,
                 PruneEventsCommand::class,
                 ListEventsCommand::class,
             ]);
         }
 
-        // Register scheduled rollups
+        // Register scheduled reports
         $this->app->booted(function () {
-            $this->scheduleRollups();
+            $this->scheduleReports();
         });
     }
 
-    protected function scheduleRollups(): void
+    protected function scheduleReports(): void
     {
         $schedule = $this->app->make(Schedule::class);
-        $rollups = config('business-metrics.rollups', []);
+        $reportClasses = config('business-metrics.reports', []);
 
-        foreach ($rollups as $name => $rollup) {
-            if ($rollup['enabled'] ?? false) {
-                $schedule->command(ProcessRollupsCommand::class, ['--rollup' => $name])
-                    ->cron($rollup['schedule'])
-                    ->withoutOverlapping()
-                    ->runInBackground();
-            }
+        foreach ($reportClasses as $class) {
+            $report = new $class();
+            $schedule->job(new ProcessReportJob($class))
+                ->cron($report->schedule())
+                ->withoutOverlapping();
         }
 
         // Prune old events daily at 3 AM

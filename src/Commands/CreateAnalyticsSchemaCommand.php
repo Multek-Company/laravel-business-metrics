@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 class CreateAnalyticsSchemaCommand extends Command
 {
     protected $signature = 'business-metrics:create-schema';
-    protected $description = 'Create the analytics PostgreSQL schema and rollup tables';
+    protected $description = 'Create the analytics PostgreSQL schema and report tables';
 
     public function handle(): int
     {
@@ -19,21 +19,18 @@ class CreateAnalyticsSchemaCommand extends Command
         $this->info("Creating schema '{$schema}'...");
         $db->statement("CREATE SCHEMA IF NOT EXISTS {$schema}");
 
-        // Create rollup tables
-        $rollups = config('business-metrics.rollups', []);
+        // Create tables for each registered report
+        $reportClasses = config('business-metrics.reports', []);
 
-        foreach ($rollups as $name => $config) {
-            if (! ($config['enabled'] ?? false)) {
-                continue;
-            }
+        if (empty($reportClasses)) {
+            $this->warn('No reports registered in config/business-metrics.php.');
+            $this->line('  Add report classes to the "reports" array, then re-run this command.');
+        }
 
-            if ($name === 'funnel_daily') {
-                $this->createFunnelDailyTable($db, $config['table']);
-            } else {
-                $this->createEventRollupTable($db, $config['table']);
-            }
-
-            $this->info("  ✓ {$config['table']}");
+        foreach ($reportClasses as $class) {
+            $report = new $class();
+            $db->statement($report->schema());
+            $this->info("  Created {$report->table()}");
         }
 
         $this->info('Analytics schema created successfully!');
@@ -44,54 +41,5 @@ class CreateAnalyticsSchemaCommand extends Command
         $this->line('  3. Start logging: BusinessEvent::log(\'user_signed_up\', [...])');
 
         return self::SUCCESS;
-    }
-
-    protected function createEventRollupTable($db, string $table): void
-    {
-        $db->statement("
-            CREATE TABLE IF NOT EXISTS {$table} (
-                bucket TIMESTAMPTZ NOT NULL,
-                event_name VARCHAR(100) NOT NULL,
-                event_count BIGINT NOT NULL DEFAULT 0,
-                distinct_companies BIGINT NOT NULL DEFAULT 0,
-                distinct_users BIGINT NOT NULL DEFAULT 0,
-                total_value NUMERIC(15,2) NOT NULL DEFAULT 0,
-                updated_at TIMESTAMPTZ DEFAULT NOW(),
-                PRIMARY KEY (bucket, event_name)
-            )
-        ");
-
-        // Index for time-range queries (Grafana)
-        $safeName = str_replace('.', '_', $table);
-        $db->statement("
-            CREATE INDEX IF NOT EXISTS idx_{$safeName}_bucket
-            ON {$table} (bucket DESC)
-        ");
-    }
-
-    protected function createFunnelDailyTable($db, string $table): void
-    {
-        $stages = config('business-metrics.funnel_stages', []);
-
-        $stageColumns = '';
-        foreach ($stages as $i => $stage) {
-            $col = "stage_{$i}_{$stage}";
-            $stageColumns .= "                {$col} BIGINT NOT NULL DEFAULT 0,\n";
-        }
-
-        $db->statement("
-            CREATE TABLE IF NOT EXISTS {$table} (
-                day DATE NOT NULL,
-                company_id BIGINT,
-{$stageColumns}                updated_at TIMESTAMPTZ DEFAULT NOW(),
-                PRIMARY KEY (day, company_id)
-            )
-        ");
-
-        $safeName = str_replace('.', '_', $table);
-        $db->statement("
-            CREATE INDEX IF NOT EXISTS idx_{$safeName}_day
-            ON {$table} (day DESC)
-        ");
     }
 }
